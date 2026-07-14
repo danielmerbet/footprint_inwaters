@@ -1,0 +1,535 @@
+<title>How the oscillation footprint F is computed</title>
+<style>
+  :root{
+    --page:#f4f3ef; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#8a8880;
+    --grid:#e6e5df; --axis:#c9c8bf; --rule:rgba(11,11,11,0.10); --chip:#efeee8;
+    --enso:#0072B2; --iod:#D55E00; --nao:#009E73; --obs:#0b0b0b; --model:#6a4c9c; --accent:#0e7c86;
+    --good:#0ca30c; --warn:#c98500;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --page:#0f100f; --surface:#1a1a19; --ink:#f4f4f0; --ink2:#c3c2b7; --muted:#8f8d85;
+      --grid:#2a2a28; --axis:#3a3a37; --rule:rgba(255,255,255,0.10); --chip:#242422;
+      --enso:#3a9bd8; --iod:#ef7d43; --nao:#1cc98f; --obs:#f4f4f0; --model:#a48fe0; --accent:#2cb7c2;
+      --good:#0ca30c; --warn:#e0a53a;
+    }
+  }
+  :root[data-theme="light"]{
+    --page:#f4f3ef; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#8a8880;
+    --grid:#e6e5df; --axis:#c9c8bf; --rule:rgba(11,11,11,0.10); --chip:#efeee8;
+    --enso:#0072B2; --iod:#D55E00; --nao:#009E73; --obs:#0b0b0b; --model:#6a4c9c; --accent:#0e7c86; --warn:#c98500;
+  }
+  :root[data-theme="dark"]{
+    --page:#0f100f; --surface:#1a1a19; --ink:#f4f4f0; --ink2:#c3c2b7; --muted:#8f8d85;
+    --grid:#2a2a28; --axis:#3a3a37; --rule:rgba(255,255,255,0.10); --chip:#242422;
+    --enso:#3a9bd8; --iod:#ef7d43; --nao:#1cc98f; --obs:#f4f4f0; --model:#a48fe0; --accent:#2cb7c2; --warn:#e0a53a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;font-size:16px}
+  .wrap{max-width:1000px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px) 80px}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;line-height:1.15;letter-spacing:-.01em}
+  h1{font-size:clamp(1.9rem,4.6vw,3rem);margin:0 0 .3em}
+  .sub{font-size:clamp(1rem,2.4vw,1.18rem);color:var(--ink2);max-width:60ch;margin:0 0 1.4em}
+  p{max-width:66ch}
+  a{color:var(--accent)}
+  .eyebrow{font-family:var(--sans);text-transform:uppercase;letter-spacing:.14em;font-size:.7rem;
+    font-weight:600;color:var(--accent)}
+  .eq{font-family:var(--mono);font-size:clamp(.82rem,2.2vw,1rem);background:var(--surface);
+    border:1px solid var(--rule);border-radius:10px;padding:14px 16px;display:inline-block;
+    margin:.2em 0 0;line-height:1.9;overflow-x:auto;max-width:100%}
+  .eq .E{color:var(--enso);font-weight:700}.eq .I{color:var(--iod);font-weight:700}.eq .N{color:var(--nao);font-weight:700}
+  .eq .Fv{color:var(--model);font-weight:700}
+
+  /* controls */
+  .panel{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--page) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--rule);margin:26px 0 8px;padding:12px 0}
+  .panel-in{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center}
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl-lab{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-family:var(--sans);font-size:.82rem;border:1px solid var(--rule);background:var(--surface);
+    color:var(--ink2);padding:6px 11px;border-radius:999px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .chip:hover{border-color:var(--accent);color:var(--ink)}
+  .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-size:.85rem;color:var(--ink2);user-select:none}
+  .track{width:38px;height:22px;border-radius:999px;background:var(--axis);position:relative;transition:background .18s;flex:none}
+  .track::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+    background:#fff;transition:transform .18s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .switch[aria-checked="true"] .track{background:var(--accent)}
+  .switch[aria-checked="true"] .track::after{transform:translateX(16px)}
+  input[type=range]{width:150px;accent-color:var(--accent)}
+  .lagval{font-family:var(--mono);color:var(--ink);font-weight:600}
+  .idx-toggles{display:flex;gap:6px;flex-wrap:wrap}
+  .idx{font-family:var(--sans);font-size:.82rem;border:1px solid var(--rule);background:var(--surface);
+    padding:6px 10px 6px 8px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+  .idx .sw{width:9px;height:9px;border-radius:2px;flex:none}
+  .idx[aria-pressed="false"]{opacity:.42;text-decoration:line-through}
+  .idx:hover{border-color:var(--accent)}
+
+  /* steps */
+  .step{display:grid;grid-template-columns:1fr;gap:8px;padding:34px 0;border-top:1px solid var(--rule)}
+  .step:first-of-type{border-top:none}
+  .step-n{font-family:var(--mono);font-size:.74rem;color:var(--accent);font-weight:600;letter-spacing:.08em}
+  .step h2{font-size:clamp(1.3rem,3vw,1.7rem);margin:.1em 0 .3em}
+  .figure{background:var(--surface);border:1px solid var(--rule);border-radius:14px;
+    padding:16px 16px 12px;margin-top:14px}
+  .fig-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .fig-title{font-weight:600;font-size:.95rem}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--ink2)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .legend i.dash{background:none !important;border-top:2px dashed var(--muted);height:0}
+  .cap{font-size:.8rem;color:var(--muted);margin:8px 2px 0;max-width:70ch}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .svg-wrap{position:relative}
+  .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--page);font-family:var(--mono);
+    font-size:.72rem;padding:6px 8px;border-radius:6px;transform:translate(-50%,-120%);white-space:nowrap;
+    opacity:0;transition:opacity .1s;z-index:5;line-height:1.5}
+  .callout{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 9%,var(--surface));
+    padding:11px 14px;border-radius:0 8px 8px 0;font-size:.9rem;margin-top:12px;color:var(--ink2)}
+  .callout b{color:var(--ink)}
+
+  /* result */
+  .result{display:grid;grid-template-columns:1fr;gap:18px}
+  @media(min-width:720px){.result{grid-template-columns:1.1fr .9fr}}
+  .meter-card{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:20px}
+  .Fbig{font-family:var(--serif);font-size:clamp(3rem,10vw,4.6rem);color:var(--model);line-height:1;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .Fbig small{font-family:var(--sans);font-size:1rem;color:var(--ink2);font-weight:400;margin-left:8px}
+  .meter{height:16px;border-radius:999px;background:var(--chip);position:relative;margin:14px 0 6px;overflow:hidden}
+  .meter-fill{height:100%;border-radius:999px;background:var(--model);transition:width .35s ease}
+  .meter-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.68rem;color:var(--muted)}
+  .stat-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .stat{flex:1;min-width:110px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:11px 13px}
+  .stat .k{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  .stat .v{font-family:var(--mono);font-size:1.15rem;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+  .badge{display:inline-block;font-size:.74rem;font-weight:600;padding:3px 9px;border-radius:999px;font-family:var(--sans)}
+  .badge.sig{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+  .badge.nsig{background:color-mix(in srgb,var(--muted) 20%,transparent);color:var(--ink2)}
+  .coefs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-family:var(--mono);font-size:.8rem}
+  .coef{border:1px solid var(--rule);border-radius:8px;padding:6px 10px;background:var(--surface)}
+  .coef b{font-weight:700}
+  .foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--rule);font-size:.82rem;color:var(--muted)}
+  .foot code{font-family:var(--mono);color:var(--ink2)}
+  .themebtn{position:fixed;top:12px;right:12px;z-index:40;border:1px solid var(--rule);background:var(--surface);
+    color:var(--ink2);border-radius:999px;padding:7px 12px;font-size:.76rem;cursor:pointer;font-family:var(--sans)}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+
+<button class="themebtn" id="themebtn" aria-label="Toggle light or dark theme">◐ Theme</button>
+<div class="wrap">
+  <div class="eyebrow">Method walkthrough · inland-water climate footprint</div>
+  <h1>How the oscillation footprint&nbsp;<span style="color:var(--model)">F</span> is computed</h1>
+  <p class="sub">The footprint is the fraction of a water body's year-to-year temperature swings that the
+  three big climate oscillations organise. Here it is, computed step by step on real simulated data —
+  pick a site and watch the number build.</p>
+  <div class="eq"><span class="Fv">F</span> = adjusted R²(&nbsp;T′ &nbsp;~&nbsp;
+    <span class="E">ENSO</span> + <span class="I">IOD</span> + <span class="N">NAO</span>&nbsp;)</div>
+
+  <!-- CONTROL PANEL -->
+  <div class="panel">
+    <div class="panel-in">
+      <div class="ctl">
+        <span class="ctl-lab">Example site</span>
+        <div class="chips" id="siteChips"></div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-lab">Detrend</span>
+        <div class="switch" id="detrendSw" role="switch" aria-checked="true" tabindex="0">
+          <span class="track"></span><span id="detrendTxt">on</span>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-lab">Lag (years)</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="range" id="lag" min="0" max="3" step="1" value="0">
+          <span class="lagval" id="lagval">0</span>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-lab">Drivers in model</span>
+        <div class="idx-toggles" id="idxToggles"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 1 -->
+  <section class="step">
+    <div class="step-n">STEP 01</div>
+    <h2>Start with the raw temperature record</h2>
+    <p>Each grid cell has one annual water-temperature value per year, 1950–2021 (72 years). Most of the
+    long-term change is a slow warming <em>trend</em> — not what we're after. We want the fast,
+    year-to-year wobble the oscillations drive, so the trend has to come out first.</p>
+    <div class="figure">
+      <div class="fig-head"><span class="fig-title" id="t1">Annual water temperature</span>
+        <div class="legend"><span><i style="background:var(--obs)"></i>temperature</span>
+          <span><i class="dash"></i>linear trend</span></div></div>
+      <div class="svg-wrap" id="c1"></div>
+      <div class="cap" id="cap1"></div>
+    </div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step">
+    <div class="step-n">STEP 02</div>
+    <h2>Detrend to isolate the interannual signal</h2>
+    <p>Subtract the straight-line trend. What's left is the <b>interannual anomaly T′</b> — each year's
+    departure from where the trend says it "should" be. This is the quantity the footprint explains.
+    Detrending matters: some indices carry their own warming trend, and without this step a shared trend
+    masquerades as a real teleconnection.</p>
+    <div class="figure">
+      <div class="fig-head"><span class="fig-title">Interannual anomaly T′ (°C)</span>
+        <div class="legend"><span><i style="background:var(--obs)"></i>T′ anomaly</span></div></div>
+      <div class="svg-wrap" id="c2"></div>
+      <div class="cap">Positive = warmer than the trend that year; negative = cooler. Mean zero by construction.</div>
+      <div class="callout" id="detrendNote"></div>
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step">
+    <div class="step-n">STEP 03</div>
+    <h2>Line up the three climate drivers</h2>
+    <p>Each oscillation is summarised by one index, taken in the season it peaks — <span style="color:var(--enso);font-weight:600">ENSO</span>
+    in boreal winter (DJF), <span style="color:var(--nao);font-weight:600">NAO</span> in winter (DJFM),
+    <span style="color:var(--iod);font-weight:600">IOD</span> in autumn (SON). All three are detrended and
+    standardised to mean&nbsp;0, SD&nbsp;1, so their regression coefficients are directly comparable.</p>
+    <div class="figure">
+      <div class="fig-head"><span class="fig-title">Standardised oscillation indices</span>
+        <div class="legend">
+          <span><i style="background:var(--enso)"></i>ENSO</span>
+          <span><i style="background:var(--iod)"></i>IOD</span>
+          <span><i style="background:var(--nao)"></i>NAO</span></div></div>
+      <div class="svg-wrap" id="c3"></div>
+      <div class="cap">Same three series at every site — what differs between sites is how strongly the water tracks them.</div>
+    </div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="step">
+    <div class="step-n">STEP 04</div>
+    <h2>Fit them together, and see what the model reproduces</h2>
+    <p>Regress the anomaly T′ on the three indices at once. The fitted line is
+    <span style="color:var(--model);font-weight:600">β<sub>E</sub>·ENSO + β<sub>I</sub>·IOD + β<sub>N</sub>·NAO</span>
+    — the best additive reconstruction of the water's wobble from the oscillations. Toggle a driver off in
+    the panel above to watch its contribution leave the fit.</p>
+    <div class="figure">
+      <div class="fig-head"><span class="fig-title">Observed anomaly vs. oscillation model</span>
+        <div class="legend">
+          <span><i style="background:var(--obs)"></i>observed T′</span>
+          <span><i style="background:var(--model)"></i>model fit</span></div></div>
+      <div class="svg-wrap" id="c4"></div>
+      <div class="coefs" id="coefs"></div>
+      <div class="cap" id="cap4"></div>
+    </div>
+  </section>
+
+  <!-- STEP 5 · RESULT -->
+  <section class="step">
+    <div class="step-n">STEP 05</div>
+    <h2>The footprint <span style="color:var(--model)">F</span> is the variance the model captures</h2>
+    <p>F is the <b>adjusted R²</b> of that fit — the share of interannual temperature variance the three
+    oscillations jointly explain, adjusted so that adding a useless predictor can't inflate it. A cell is
+    called <b>teleconnected</b> when F is field-significant after false-discovery-rate control.</p>
+    <div class="result">
+      <div class="meter-card">
+        <div class="Fbig"><span id="Fnum">0.00</span><small>adjusted R² &nbsp;·&nbsp; live</small></div>
+        <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+        <div class="meter-scale"><span>0</span><span>0.2</span><span>0.4</span><span>0.6</span></div>
+        <div class="stat-row">
+          <div class="stat"><div class="k">Significance</div><div class="v"><span id="sigBadge"></span></div></div>
+          <div class="stat"><div class="k">p (eff. DOF)</div><div class="v" id="pval">—</div></div>
+          <div class="stat"><div class="k">Pipeline F / q</div><div class="v" id="pipe">—</div></div>
+        </div>
+        <p class="cap" id="sigNote" style="margin-top:14px"></p>
+      </div>
+      <div class="meter-card">
+        <div class="fig-title" style="margin-bottom:4px">Variance explained by each driver alone</div>
+        <div class="cap" style="margin:0 0 6px">Single-index adjusted R². The joint F (violet line) can exceed
+        or fall short of the parts, depending on how the drivers overlap.</div>
+        <div class="svg-wrap" id="c5"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STEP 6 · COMPARE -->
+  <section class="step">
+    <div class="step-n">STEP 06</div>
+    <h2>Every cell on Earth gets an F — that's the map</h2>
+    <p>Run steps 1–5 for all ~100,000 river and lake cells and you have the global footprint. The four
+    example sites already span the range: a textbook ENSO cell, the Amazon, a modest North-Atlantic
+    responder, and a cell where the oscillations explain essentially nothing.</p>
+    <div class="figure">
+      <div class="fig-head"><span class="fig-title">Footprint F across the four example sites</span>
+        <div class="legend"><span><i style="background:var(--model)"></i>current site highlighted</span></div></div>
+      <div class="svg-wrap" id="c6"></div>
+      <div class="cap">Click a bar to jump to that site.</div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p style="max-width:72ch">Live values are recomputed in your browser with the same engine as the paper —
+    linear detrend, standardised season-specific indices, ordinary least squares, adjusted R², and an
+    autocorrelation-corrected (effective degrees of freedom) F-test. Temperatures are ISIMIP3a simulations
+    (GOTM lakes; WaterGAP2-2e rivers) forced by 20CRv3-ERA5; indices from NOAA CPC/PSL. Numbers match the
+    pipeline outputs in <code>output/footprint/</code> to rounding.</p>
+  </div>
+</div>
+
+<script>
+const DATA = {"years":[1950,1951,1952,1953,1954,1955,1956,1957,1958,1959,1960,1961,1962,1963,1964,1965,1966,1967,1968,1969,1970,1971,1972,1973,1974,1975,1976,1977,1978,1979,1980,1981,1982,1983,1984,1985,1986,1987,1988,1989,1990,1991,1992,1993,1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021],"indices_detr":{"enso":[-1.48,-0.794,0.509,0.384,0.731,-0.658,-1.072,-0.242,1.746,0.589,-0.096,0.04,-0.23,-0.384,1.035,-0.567,1.325,-0.392,-0.614,1.095,0.497,-1.307,-0.679,1.781,-1.769,-0.514,-1.498,0.693,0.674,0.037,0.578,-0.241,-0.038,2.114,-0.568,-0.992,-0.461,1.199,0.794,-1.618,0.148,0.409,1.664,0.101,0.073,0.941,-0.853,-0.466,2.178,-1.479,-1.584,-0.638,-0.127,0.906,0.376,0.637,-0.8,0.657,-1.562,-0.799,1.469,-1.348,-0.807,-0.392,-0.382,0.554,2.417,-0.304,-0.863,0.749,0.508,-0.987],"iod":[0.026,1.269,0.092,0.643,-0.572,-0.355,-0.607,-0.085,-1.518,-0.687,-0.982,2.284,0.395,1.782,-1.071,0.615,0.449,1.23,-0.647,0.478,-0.536,-0.389,2.049,-0.456,-1.095,-1.285,0.159,0.569,-0.433,-0.115,-1.022,-0.929,1.801,-0.079,-0.99,-0.093,0.091,1,-0.561,-0.471,-0.175,0.464,-1.342,-0.112,1.674,-0.491,-2.124,2.87,-1.515,-0.147,-0.342,-0.704,0.818,-0.339,-0.182,-1.091,1.373,0.239,-0.05,-0.227,-1.172,0.701,0.288,-0.409,-0.176,0.813,-1.306,0.055,1.344,2.139,-0.41,-0.419],"nao":[1.261,0.208,0.663,0.411,0.563,-0.518,0.095,0.563,-0.854,0.09,-0.825,1.053,-0.695,-1.546,-1.842,-0.991,-0.155,0.923,-0.211,-1.907,-0.623,-0.984,0.947,0.707,0.726,0.441,0.65,-1.548,-0.724,-1.155,-0.036,0.298,0.478,1.423,0.795,-0.93,0.638,-0.516,0.541,2.012,0.825,0.46,0.576,0.942,1.353,1.739,-1.295,0.038,-0.421,0.35,1.343,-1.036,-0.035,-0.562,-0.155,-0.339,-1.092,0.293,0.069,-0.644,-3.193,-1.408,1.316,-1.508,0.456,1.659,0.926,0.103,0.186,0.06,0.879,-1.31]},"indices_raw":{"enso":[-1.465,-0.78,0.523,0.397,0.745,-0.645,-1.06,-0.23,1.758,0.6,-0.085,0.05,-0.22,-0.375,1.044,-0.558,1.333,-0.384,-0.606,1.101,0.503,-1.301,-0.674,1.786,-1.764,-0.51,-1.494,0.696,0.677,0.04,0.58,-0.24,-0.037,2.115,-0.568,-0.992,-0.461,1.198,0.793,-1.619,0.146,0.407,1.661,0.098,0.069,0.937,-0.857,-0.471,2.172,-1.484,-1.59,-0.645,-0.133,0.899,0.368,0.629,-0.809,0.648,-1.571,-0.809,1.458,-1.359,-0.818,-0.404,-0.394,0.542,2.404,-0.317,-0.876,0.735,0.494,-1.002],"iod":[-0.731,0.404,-0.629,-0.115,-1.181,-0.966,-1.171,-0.682,-1.944,-1.178,-1.422,1.526,-0.145,1.118,-1.416,0.116,-0.012,0.709,-0.951,0.078,-0.809,-0.657,1.548,-0.674,-1.225,-1.374,-0.06,0.329,-0.547,-0.241,-1.032,-0.928,1.539,-0.124,-0.919,-0.094,0.092,0.928,-0.45,-0.347,-0.061,0.533,-1.064,0.059,1.68,-0.238,-1.679,2.815,-1.091,0.155,0.002,-0.301,1.083,0.068,0.23,-0.563,1.665,0.671,0.433,0.296,-0.529,1.169,0.821,0.218,0.448,1.355,-0.522,0.718,1.895,2.627,0.366,0.379],"nao":[0.302,-0.601,-0.178,-0.377,-0.221,-1.149,-0.587,-0.153,-1.377,-0.523,-1.305,0.37,-1.145,-1.871,-2.109,-1.337,-0.58,0.391,-0.584,-2.052,-0.9,-1.195,0.526,0.337,0.377,0.149,0.355,-1.554,-0.808,-1.163,-0.157,0.16,0.341,1.195,0.665,-0.829,0.572,-0.42,0.533,1.849,0.828,0.53,0.654,0.999,1.383,1.746,-0.9,0.295,-0.086,0.615,1.511,-0.559,0.345,-0.096,0.284,0.145,-0.495,0.746,0.572,-0.032,-2.251,-0.658,1.76,-0.701,1.049,2.13,1.508,0.807,0.903,0.814,1.557,-0.345]},"sites":[{"id":"enso","label":"Lake surface · ENSO-dominated","compartment":"Lake surface","lon":-77.75,"lat":-8.25,"tempC":[18.197,18.305,18.266,18.541,18.699,18.638,18.651,18.649,19.058,18.642,18.36,18.817,18.513,18.505,18.71,18.349,19.155,18.458,18.381,19.107,18.831,18.194,18.524,18.987,18.342,18.157,18.264,18.599,18.937,19.324,18.955,18.939,18.845,20.081,18.387,18.429,18.72,19.539,19.058,18.599,18.988,19.241,19.577,18.886,18.72,19.47,18.752,19.433,20.008,18.591,18.838,18.946,19.241,19.437,19.32,19.604,19.084,19.199,19.249,19.276,19.633,18.662,19.087,19.334,19.323,19.65,20.178,19.442,19.178,19.411,19.595,19.153],"F":0.644,"q":7.52e-10,"p":1.82e-14,"adjR2":{"enso":0.649,"iod":-0.004,"nao":-0.014},"lag":{"enso":0,"iod":0,"nao":0}},{"id":"amazon","label":"River · Amazon (ENSO)","compartment":"River","lon":-50.25,"lat":0.25,"tempC":[30.349,30.487,30.076,30.033,30.004,29.641,29.83,30.053,30.827,30.052,29.998,30.211,30.226,30.032,30.161,30.269,30.426,29.784,30.135,30.59,30.353,29.659,29.974,30.086,29.248,29.495,29.531,29.894,30.106,30.14,30.539,30.415,30.201,31.273,29.598,29.671,29.629,30.847,30.499,29.603,30.554,30.377,31.204,30.399,30.075,30.664,30.113,30.861,31.435,29.779,29.726,30.182,30.801,30.523,30.493,31.197,30.35,30.74,30.152,30.478,31.282,30.384,30.807,30.692,30.683,31.287,31.589,30.955,30.714,30.756,30.973,30.552],"F":0.52,"q":0.0018,"p":0,"adjR2":{"enso":0.519,"iod":-0.014,"nao":-0.01},"lag":{"enso":0,"iod":0,"nao":0}},{"id":"nao","label":"Lake surface · NAO (N. Atlantic)","compartment":"Lake surface","lon":0.25,"lat":45.75,"tempC":[15.204,14.485,14.726,14.506,13.763,14.95,13.188,14.674,14.553,15.447,14.446,15.56,13.818,14.049,13.948,14.184,14.903,14.69,14.493,14.669,14.863,14.387,14.116,14.196,14.618,14.634,14.498,14.442,14.293,14.205,13.555,14.38,15.327,14.758,14.455,14.048,14.425,14.419,15.133,15.56,15.645,14.453,14.767,14.302,15.825,15.456,14.69,15.528,14.677,15.34,15.46,15.086,15.199,16.053,14.996,15.005,15.561,15.063,14.857,15.349,14.278,15.985,14.997,14.807,16.15,15.483,15.492,15.433,16.335,15.927,16.212,15.214],"F":0.158,"q":0.0463,"p":0.0033,"adjR2":{"enso":-0.007,"iod":0.086,"nao":0.109},"lag":{"enso":0,"iod":0,"nao":0}},{"id":"weak","label":"Lake surface · weakly coupled","compartment":"Lake surface","lon":172.75,"lat":-34.75,"tempC":[18.4,17.608,17.427,17.716,17.989,18.526,18.336,17.683,18.328,18.035,18.187,18.215,18.591,17.733,17.771,17.247,17.678,18.289,17.63,17.965,18.68,18.638,18.093,18.548,18.548,18.284,17.17,17.302,18.139,18.192,17.541,18.238,17.904,17.689,18.325,18.165,18.264,17.736,18.472,18.235,18.535,17.477,17.104,17.277,17.544,18.165,17.921,17.729,19.187,18.402,18.001,18.311,17.976,18.09,17.583,18.613,17.924,18.301,18.036,17.879,18.263,18.223,17.669,18.328,18.048,18.188,19.036,18.707,18.701,18.63,18.803,18.924],"F":0.02,"q":0.825,"p":0.621,"adjR2":{"enso":-0.014,"iod":0.047,"nao":-0.013},"lag":{"enso":0,"iod":0,"nao":0}}]};
+
+/* ---------- math ---------- */
+const sum=a=>a.reduce((x,y)=>x+y,0), mean=a=>sum(a)/a.length;
+function detrend(y){const n=y.length,mx=(n-1)/2,my=mean(y);let sxy=0,sxx=0;
+  for(let i=0;i<n;i++){sxy+=(i-mx)*(y[i]-my);sxx+=(i-mx)*(i-mx);}
+  const b=sxy/sxx,a=my-b*mx;return y.map((v,i)=>v-(a+b*i));}
+function trendLine(y){const n=y.length,mx=(n-1)/2,my=mean(y);let sxy=0,sxx=0;
+  for(let i=0;i<n;i++){sxy+=(i-mx)*(y[i]-my);sxx+=(i-mx)*(i-mx);}
+  const b=sxy/sxx,a=my-b*mx;return y.map((v,i)=>a+b*i);}
+function zscore(y){const m=mean(y),sd=Math.sqrt(sum(y.map(v=>(v-m)*(v-m)))/(y.length-1))||1;
+  return y.map(v=>(v-m)/sd);}
+function corr(a,b){const ma=mean(a),mb=mean(b);let n=0,da=0,db=0;
+  for(let i=0;i<a.length;i++){n+=(a[i]-ma)*(b[i]-mb);da+=(a[i]-ma)**2;db+=(b[i]-mb)**2;}
+  return n/Math.sqrt(da*db);}
+// solve small linear system A x = b (Gaussian elimination, partial pivot)
+function solve(A,b){const n=b.length,M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;
+    [M[c],M[p]]=[M[p],M[c]];const pv=M[c][c]||1e-12;
+    for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/pv;for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k];}}
+  return M.map((r,i)=>r[n]/(M[i][i]||1e-12));}
+// OLS of y on columns X (each column an array); returns {beta,fitted,R2,adjR2,resid}
+function ols(y,cols){const n=y.length,X=[[...Array(n).fill(1)],...cols],p=X.length;
+  const A=[],bb=[];for(let i=0;i<p;i++){A.push([]);for(let j=0;j<p;j++)A[i].push(sum(X[i].map((v,k)=>v*X[j][k])));
+    bb.push(sum(X[i].map((v,k)=>v*y[k])));}
+  const beta=solve(A,bb);const fitted=y.map((_,k)=>sum(X.map((col,i)=>beta[i]*col[k])));
+  const resid=y.map((v,k)=>v-fitted[k]);const my=mean(y);
+  const sst=sum(y.map(v=>(v-my)**2)),ssr=sum(resid.map(v=>v*v));
+  const R2=1-ssr/sst,adj=1-(1-R2)*(n-1)/(n-p);
+  return {beta,fitted,resid,R2,adjR2:adj,n,p};}
+// gammaln + regularised incomplete beta -> F survival p-value
+function gln(x){const c=[76.18009172947146,-86.50532032941677,24.01409824083091,
+  -1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];let y=x,t=x+5.5;
+  t-=(x+0.5)*Math.log(t);let s=1.000000000190015;for(let j=0;j<6;j++)s+=c[j]/++y;
+  return -t+Math.log(2.5066282746310005*s/x);}
+function betacf(a,b,x){const M=200,eps=3e-12,fp=1e-30;let qab=a+b,qap=a+1,qam=a-1;
+  let c=1,d=1-qab*x/qap;if(Math.abs(d)<fp)d=fp;d=1/d;let h=d;
+  for(let m=1;m<=M;m++){let m2=2*m,aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d;if(Math.abs(d)<fp)d=fp;c=1+aa/c;if(Math.abs(c)<fp)c=fp;d=1/d;h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<fp)d=fp;
+    c=1+aa/c;if(Math.abs(c)<fp)c=fp;d=1/d;let del=d*c;h*=del;if(Math.abs(del-1)<eps)break;}
+  return h;}
+function betai(a,b,x){if(x<=0)return 0;if(x>=1)return 1;
+  const bt=Math.exp(gln(a+b)-gln(a)-gln(b)+a*Math.log(x)+b*Math.log(1-x));
+  return x<(a+1)/(a+b+2)?bt*betacf(a,b,x)/a:1-bt*betacf(b,a,1-x)/b;}
+// effective-DOF F-test p (matches engine): r1 of residuals, neff, F, p
+function effP(R2,resid,pPred){const n=resid.length;
+  const a=resid.slice(1),b=resid.slice(0,-1);const r1c=corr(a,b);
+  let r1=isNaN(r1c)?0:Math.max(0,Math.min(0.99,r1c));
+  const neff=n*(1-r1)/(1+r1);const d1=pPred-1,d2=neff-pPred;
+  if(d2<=1)return{p:NaN,neff,d1,d2};
+  const F=(R2/d1)/((1-R2)/d2);if(!(F>0))return{p:NaN,neff,d1,d2};
+  const p=betai(d2/2,d1/2,d2/(d2+d1*F));return{p,neff,d1,d2,F};}
+
+/* ---------- state + model ---------- */
+const IDX=['enso','iod','nao'];
+const state={site:'enso',detrend:true,lag:0,use:{enso:true,iod:true,nao:true}};
+function siteObj(){return DATA.sites.find(s=>s.id===state.site);}
+function indexSrc(){return state.detrend?DATA.indices_detr:DATA.indices_raw;}
+// build aligned y and predictor columns for current state
+function build(){const s=siteObj();const L=state.lag;
+  let y=state.detrend?detrend(s.tempC):s.tempC.map(v=>v-mean(s.tempC));
+  const src=indexSrc();const n=y.length;
+  const rows=[];for(let i=L;i<n;i++)rows.push(i);
+  const yA=rows.map(i=>y[i]);
+  const on=IDX.filter(k=>state.use[k]);
+  const cols=on.map(k=>rows.map(i=>src[k][i-L]));
+  return {yA,cols,on,rows,yFull:y,src,L,n};}
+function computeF(){const b=build();
+  if(b.on.length===0){return {F:0,adjR2:0,fitted:b.yA.map(_=>0),yA:b.yA,rows:b.rows,
+    beta:[],on:[],p:NaN,single:singleAdj(b),effInfo:{}};}
+  const m=ols(b.yA,b.cols);const e=effP(m.R2,m.resid,m.p);
+  return {F:m.adjR2,adjR2:m.adjR2,fitted:m.fitted,yA:b.yA,rows:b.rows,beta:m.beta,on:b.on,
+    p:e.p,neff:e.neff,d1:e.d1,d2:e.d2,single:singleAdj(b)};}
+function singleAdj(b){const out={};IDX.forEach(k=>{
+  const col=[b.rows.map(i=>b.src[k][i-b.L])];const m=ols(b.rows.map(i=>b.yFull[i]),col);out[k]=m.adjR2;});
+  return out;}
+
+/* ---------- svg charts ---------- */
+const NS='http://www.w3.org/2000/svg';
+const cvar=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function fmt(v,d=2){return (v>=0?'':'−')+Math.abs(v).toFixed(d);}
+function niceExtent(vals){let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1;}
+  const pad=(hi-lo)*0.08;return [lo-pad,hi+pad];}
+
+// generic multi-series line chart with hover; series:[{color,vals,width,dash,name,fmt}]
+function lineChart(host,{xs,series,ydom,height=200,zero=false,yunit=''}){
+  host.innerHTML='';const W=680,H=height,m={l:44,r:14,t:10,b:26};
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svg.setAttribute('role','img');
+  const allv=series.flatMap(s=>s.vals.filter(v=>v!=null));
+  const yd=ydom||niceExtent(allv);
+  const x0=xs[0],x1=xs[xs.length-1];
+  const X=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r);
+  const Y=v=>H-m.b-(v-yd[0])/(yd[1]-yd[0])*(H-m.t-m.b);
+  const mk=(t,at)=>{const e=document.createElementNS(NS,t);for(const k in at)e.setAttribute(k,at[k]);return e;};
+  // grid + y ticks
+  const ticks=4;for(let i=0;i<=ticks;i++){const v=yd[0]+(yd[1]-yd[0])*i/ticks;
+    svg.appendChild(mk('line',{x1:m.l,x2:W-m.r,y1:Y(v),y2:Y(v),stroke:cvar('--grid'),'stroke-width':1}));
+    const tl=mk('text',{x:m.l-7,y:Y(v)+3,'text-anchor':'end',fill:cvar('--muted'),'font-size':10,'font-family':'ui-monospace,monospace'});
+    tl.textContent=v.toFixed(Math.abs(yd[1]-yd[0])<3?1:0);svg.appendChild(tl);}
+  if(zero){svg.appendChild(mk('line',{x1:m.l,x2:W-m.r,y1:Y(0),y2:Y(0),stroke:cvar('--axis'),'stroke-width':1.5}));}
+  // x ticks (decades)
+  xs.forEach(yr=>{if(yr%20===0){const tx=mk('text',{x:X(yr),y:H-8,'text-anchor':'middle',fill:cvar('--muted'),'font-size':10,'font-family':'ui-monospace,monospace'});tx.textContent=yr;svg.appendChild(tx);
+    svg.appendChild(mk('line',{x1:X(yr),x2:X(yr),y1:H-m.b,y2:H-m.b+4,stroke:cvar('--axis'),'stroke-width':1}));}});
+  // lines
+  series.forEach(s=>{let d='';s.vals.forEach((v,i)=>{if(v==null)return;d+=(d?'L':'M')+X(xs[i]).toFixed(1)+' '+Y(v).toFixed(1)+' ';});
+    const path=mk('path',{d,fill:'none',stroke:s.color,'stroke-width':s.width||2,'stroke-linejoin':'round','stroke-linecap':'round'});
+    if(s.dash)path.setAttribute('stroke-dasharray','5 4');if(s.opacity)path.setAttribute('opacity',s.opacity);svg.appendChild(path);});
+  // hover
+  const cross=mk('line',{x1:0,x2:0,y1:m.t,y2:H-m.b,stroke:cvar('--muted'),'stroke-width':1,opacity:0});svg.appendChild(cross);
+  const dots=series.map(s=>{const c=mk('circle',{r:3.5,fill:cvar('--surface'),stroke:s.color,'stroke-width':2,opacity:0});svg.appendChild(c);return c;});
+  const tip=document.createElement('div');tip.className='tip';host.appendChild(tip);
+  const hit=mk('rect',{x:m.l,y:m.t,width:W-m.l-m.r,height:H-m.t-m.b,fill:'transparent'});svg.appendChild(hit);
+  function move(ev){const r=svg.getBoundingClientRect();const px=(ev.clientX-r.left)/r.width*W;
+    let i=Math.round((px-m.l)/(W-m.l-m.r)*(xs.length-1));i=Math.max(0,Math.min(xs.length-1,i));
+    const xp=X(xs[i]);cross.setAttribute('x1',xp);cross.setAttribute('x2',xp);cross.setAttribute('opacity',1);
+    let rows='';series.forEach((s,k)=>{const v=s.vals[i];if(v==null){dots[k].setAttribute('opacity',0);return;}
+      dots[k].setAttribute('cx',xp);dots[k].setAttribute('cy',Y(v));dots[k].setAttribute('opacity',1);
+      rows+=`<div style="color:${s.color}">■ ${s.name}: ${(s.fmt?s.fmt(v):fmt(v))}${yunit}</div>`;});
+    tip.innerHTML=`<div style="color:var(--page);opacity:.7">${xs[i]}</div>${rows}`;
+    tip.style.left=(xp/W*100)+'%';tip.style.top=(m.t/H*r.height)+'px';tip.style.opacity=1;}
+  hit.addEventListener('mousemove',move);
+  hit.addEventListener('mouseleave',()=>{tip.style.opacity=0;cross.setAttribute('opacity',0);dots.forEach(d=>d.setAttribute('opacity',0));});
+  host.appendChild(svg);
+}
+
+// horizontal bars for single-index adjR2 + joint F marker
+function barChart(host,{items,fmark,max=0.7}){
+  host.innerHTML='';const W=560,rowH=42,H=items.length*rowH+16,m={l:70,r:20,t:8,b:8};
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const mk=(t,at,tx)=>{const e=document.createElementNS(NS,t);for(const k in at)e.setAttribute(k,at[k]);if(tx!=null)e.textContent=tx;return e;};
+  const X=v=>m.l+Math.max(0,v)/max*(W-m.l-m.r);
+  items.forEach((it,i)=>{const cy=m.t+i*rowH+rowH/2;
+    svg.appendChild(mk('text',{x:m.l-10,y:cy+4,'text-anchor':'end',fill:cvar('--ink2'),'font-size':12,'font-weight':600,'font-family':'system-ui,sans-serif'},it.name));
+    svg.appendChild(mk('line',{x1:m.l,x2:W-m.r,y1:cy,y2:cy,stroke:cvar('--grid'),'stroke-width':1}));
+    const w=X(it.val)-m.l;
+    svg.appendChild(mk('rect',{x:m.l,y:cy-9,width:Math.max(0,w),height:18,rx:4,fill:it.color,opacity:it.dim?0.35:1}));
+    svg.appendChild(mk('text',{x:m.l+Math.max(w,0)+8,y:cy+4,fill:cvar('--ink2'),'font-size':11,'font-family':'ui-monospace,monospace'},(it.val<0?'−':'')+Math.abs(it.val).toFixed(3)));
+  });
+  if(fmark!=null&&fmark>0){const fx=X(fmark);
+    svg.appendChild(mk('line',{x1:fx,x2:fx,y1:2,y2:H-2,stroke:cvar('--model'),'stroke-width':2,'stroke-dasharray':'4 3'}));
+    svg.appendChild(mk('text',{x:fx,y:H-1,'text-anchor':'middle',fill:cvar('--model'),'font-size':10,'font-weight':700,'font-family':'ui-monospace,monospace'},'joint F'));}
+  host.appendChild(svg);
+}
+
+// site comparison bars
+function compareChart(host){
+  host.innerHTML='';const sites=DATA.sites,W=680,colW=W/sites.length,H=180,base=H-34,top=18;
+  const svg=document.createElementNS(NS,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const mk=(t,at,tx)=>{const e=document.createElementNS(NS,t);for(const k in at)e.setAttribute(k,at[k]);if(tx!=null)e.textContent=tx;return e;};
+  const max=0.7;const Y=v=>base-v/max*(base-top);
+  [0,0.2,0.4,0.6].forEach(g=>{svg.appendChild(mk('line',{x1:30,x2:W-8,y1:Y(g),y2:Y(g),stroke:cvar('--grid'),'stroke-width':1}));
+    svg.appendChild(mk('text',{x:24,y:Y(g)+3,'text-anchor':'end',fill:cvar('--muted'),'font-size':10,'font-family':'ui-monospace,monospace'},g.toFixed(1)));});
+  sites.forEach((s,i)=>{const cx=30+i*((W-38)/sites.length)+((W-38)/sites.length)/2;const bw=Math.min(74,(W-38)/sites.length*0.5);
+    const cur=s.id===state.site;const h=base-Y(s.F);
+    const g=mk('g',{style:'cursor:pointer'});g.addEventListener('click',()=>{state.site=s.id;syncSiteChips();render();document.querySelector('.panel').scrollIntoView({behavior:'smooth',block:'start'});});
+    g.appendChild(mk('rect',{x:cx-bw/2,y:Y(s.F),width:bw,height:Math.max(1,h),rx:5,fill:cur?cvar('--model'):cvar('--axis'),opacity:cur?1:0.6}));
+    g.appendChild(mk('text',{x:cx,y:Y(s.F)-6,'text-anchor':'middle',fill:cur?cvar('--model'):cvar('--ink2'),'font-size':13,'font-weight':700,'font-family':'ui-monospace,monospace'},s.F.toFixed(2)));
+    const lab=s.label.split('·');
+    g.appendChild(mk('text',{x:cx,y:base+14,'text-anchor':'middle',fill:cvar('--ink2'),'font-size':10.5,'font-weight':600,'font-family':'system-ui,sans-serif'},lab[0].trim()));
+    g.appendChild(mk('text',{x:cx,y:base+26,'text-anchor':'middle',fill:cvar('--muted'),'font-size':9.5,'font-family':'system-ui,sans-serif'},(lab[1]||'').trim()));
+    svg.appendChild(g);});
+  host.appendChild(svg);
+}
+
+/* ---------- render ---------- */
+function render(){
+  const s=siteObj();const yrs=DATA.years;const src=indexSrc();
+  // step1 raw + trend
+  lineChart(document.getElementById('c1'),{xs:yrs,yunit:'°C',series:[
+    {name:'temp',color:cvar('--obs'),vals:s.tempC,width:2,fmt:v=>v.toFixed(2)},
+    {name:'trend',color:cvar('--muted'),vals:trendLine(s.tempC),width:2,dash:true,fmt:v=>v.toFixed(2)}]});
+  document.getElementById('t1').textContent='Annual water temperature — '+s.label;
+  document.getElementById('cap1').textContent=`${s.compartment} · ${Math.abs(s.lat)}°${s.lat<0?'S':'N'}, ${Math.abs(s.lon)}°${s.lon<0?'W':'E'}. `+
+    `Warming trend ≈ ${(trendLine(s.tempC).slice(-1)[0]-trendLine(s.tempC)[0]).toFixed(2)} °C over 72 years.`;
+  // step2 anomaly
+  const anom=state.detrend?detrend(s.tempC):s.tempC.map(v=>v-mean(s.tempC));
+  lineChart(document.getElementById('c2'),{xs:yrs,yunit:'°C',zero:true,series:[
+    {name:"T′",color:cvar('--obs'),vals:anom,width:2,fmt:v=>fmt(v)}]});
+  const rawIodTrend=corr(DATA.indices_raw.iod,yrs.map((_,i)=>i));
+  document.getElementById('detrendNote').innerHTML=state.detrend
+    ? `Detrending is <b>on</b> (the method's default). The raw IOD index correlates <b>${fmt(rawIodTrend)}</b> with year — a shared warming trend that, left in, would fake a teleconnection. Detrending removes it.`
+    : `Detrending is <b>off</b>. The indices still carry their long-term trend (raw IOD vs. year: <b>${fmt(rawIodTrend)}</b>), so any F below is partly a shared trend, not a genuine year-to-year link. This is the artefact the method avoids.`;
+  // step3 indices
+  lineChart(document.getElementById('c3'),{xs:yrs,zero:true,ydom:[-3.4,3.4],series:[
+    {name:'ENSO',color:cvar('--enso'),vals:src.enso,width:1.8,fmt:v=>fmt(v)},
+    {name:'IOD',color:cvar('--iod'),vals:src.iod,width:1.8,fmt:v=>fmt(v)},
+    {name:'NAO',color:cvar('--nao'),vals:src.nao,width:1.8,fmt:v=>fmt(v)}]});
+  // step4 fit
+  const R=computeF();
+  const fitFull=yrs.map(()=>null);R.rows.forEach((ri,k)=>fitFull[ri]=R.fitted[k]);
+  const anomAligned=yrs.map((_,i)=>anom[i]);
+  lineChart(document.getElementById('c4'),{xs:yrs,zero:true,yunit:'°C',series:[
+    {name:'observed',color:cvar('--obs'),vals:anomAligned,width:1.6,opacity:0.55,fmt:v=>fmt(v)},
+    {name:'model',color:cvar('--model'),vals:fitFull,width:2.4,fmt:v=>v==null?'—':fmt(v)}]});
+  const names={enso:'β<sub>E</sub>',iod:'β<sub>I</sub>',nao:'β<sub>N</sub>'};
+  const cols={enso:'--enso',iod:'--iod',nao:'--nao'};
+  let cf='';R.on.forEach((k,i)=>{cf+=`<span class="coef" style="border-color:${cvar(cols[k])}"><b style="color:${cvar(cols[k])}">${names[k]}</b> = ${fmt(R.beta[i+1])}</span>`;});
+  if(R.on.length===0)cf='<span class="coef">no drivers selected</span>';
+  document.getElementById('coefs').innerHTML=cf;
+  document.getElementById('cap4').innerHTML=R.on.length
+    ? `The model reproduces the observed wobble where the two lines track together. Coefficients are in °C per standard deviation of each index${state.lag>0?`, at a ${state.lag}-yr lag`:''}.`
+    : 'Toggle at least one driver back on to fit a model.';
+  // step5 result
+  const F=Math.max(0,R.F);document.getElementById('Fnum').textContent=F.toFixed(2);
+  document.getElementById('meterFill').style.width=Math.min(100,F/0.65*100)+'%';
+  const sigBadge=document.getElementById('sigBadge');
+  const isSig=R.p!=null&&!isNaN(R.p)&&R.p<0.05;
+  sigBadge.className='badge '+(isSig?'sig':'nsig');sigBadge.textContent=isSig?'teleconnected':'not significant';
+  document.getElementById('pval').textContent=(R.p==null||isNaN(R.p))?'—':(R.p<1e-4?R.p.toExponential(1):R.p.toFixed(4));
+  document.getElementById('pipe').textContent=`${s.F.toFixed(2)} / ${s.q<1e-3?s.q.toExponential(1):s.q.toFixed(3)}`;
+  document.getElementById('sigNote').innerHTML=`Effective sample size after autocorrelation correction: n<sub>eff</sub> ≈ ${R.neff?R.neff.toFixed(0):'—'} of 72. `+
+    `The pipeline value at this exact cell is F = ${s.F.toFixed(3)}, FDR q = ${s.q<1e-3?s.q.toExponential(1):s.q.toFixed(3)} — the live number matches it when all drivers are on, detrending is on, and lag = 0.`;
+  barChart(document.getElementById('c5'),{max:0.7,fmark:R.on.length?F:null,items:[
+    {name:'ENSO',color:cvar('--enso'),val:R.single.enso,dim:!state.use.enso},
+    {name:'IOD',color:cvar('--iod'),val:R.single.iod,dim:!state.use.iod},
+    {name:'NAO',color:cvar('--nao'),val:R.single.nao,dim:!state.use.nao}]});
+  compareChart(document.getElementById('c6'));
+}
+
+/* ---------- controls ---------- */
+function syncSiteChips(){document.querySelectorAll('#siteChips .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.id===state.site));}
+function buildControls(){
+  const sc=document.getElementById('siteChips');
+  DATA.sites.forEach(s=>{const b=document.createElement('button');b.className='chip';b.dataset.id=s.id;
+    b.setAttribute('aria-pressed',s.id===state.site);
+    const short=s.label.split('·')[0].trim()+(s.id==='amazon'?' (Amazon)':s.id==='nao'?' (NAO)':s.id==='weak'?' (weak)':' (ENSO)');
+    b.innerHTML=`<span class="dot" style="background:var(--model)"></span>${short}`;
+    b.onclick=()=>{state.site=s.id;syncSiteChips();render();};sc.appendChild(b);});
+  const it=document.getElementById('idxToggles');
+  [['enso','ENSO','--enso'],['iod','IOD','--iod'],['nao','NAO','--nao']].forEach(([k,lab,cv])=>{
+    const b=document.createElement('button');b.className='idx';b.setAttribute('aria-pressed','true');
+    b.innerHTML=`<span class="sw" style="background:var(${cv})"></span>${lab}`;
+    b.onclick=()=>{state.use[k]=!state.use[k];b.setAttribute('aria-pressed',state.use[k]);render();};it.appendChild(b);});
+  const sw=document.getElementById('detrendSw');
+  const toggle=()=>{state.detrend=!state.detrend;sw.setAttribute('aria-checked',state.detrend);
+    document.getElementById('detrendTxt').textContent=state.detrend?'on':'off';render();};
+  sw.onclick=toggle;sw.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}};
+  const lag=document.getElementById('lag');
+  lag.oninput=()=>{state.lag=+lag.value;document.getElementById('lagval').textContent=lag.value;render();};
+}
+// theme toggle
+const root=document.documentElement;
+document.getElementById('themebtn').onclick=()=>{
+  const cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+  root.setAttribute('data-theme',cur==='dark'?'light':'dark');render();};
+
+buildControls();render();
+window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(render,150);});
+</script>

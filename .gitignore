@@ -1,0 +1,4 @@
+
+# Preserved oversized source NetCDFs (annual/compressed versions are committed instead)
+largefiles/
+manuscript/
