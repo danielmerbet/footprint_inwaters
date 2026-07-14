@@ -1,0 +1,39 @@
+{
+  "title": "The footprint of climate oscillations in global inland waters: analysis code and derived data",
+  "upload_type": "software",
+  "description": "<p>Reproducible analysis quantifying how the leading modes of interannual climate variability (ENSO, IOD and NAO) explain year-to-year temperature variability in global rivers and lakes (surface and bottom), on a common 0.5&deg; grid, 1950&ndash;2021.</p><p>The oscillation <em>footprint F</em> is the fraction of detrended interannual water-temperature variance jointly explained by the three modes (adjusted R&sup2; of a multiple regression on the season-specific, standardised indices); grid cells where F is field-significant (Benjamini&ndash;Hochberg FDR &lt; 0.05) are termed <em>teleconnected</em>. Two-block variation partitioning separates a direct/memory pathway from a locally-mediated one. This deposit contains the R analysis code, derived GeoTIFF/JSON products, figures and self-contained interactive tools (including a live walkthrough of the F computation).</p><p>See the repository README and input/DATA_SOURCES.md for full provenance and reproduction instructions.</p>",
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "language": "eng",
+  "creators": [
+    {
+      "name": "Mercado-Bettín, Daniel",
+      "affiliation": "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+    },
+    {
+      "name": "Marcé, Rafael",
+      "affiliation": "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+    }
+  ],
+  "keywords": [
+    "climate oscillations",
+    "teleconnections",
+    "ENSO",
+    "Indian Ocean Dipole",
+    "North Atlantic Oscillation",
+    "inland waters",
+    "lakes",
+    "rivers",
+    "water temperature",
+    "interannual variability",
+    "variance partitioning",
+    "ISIMIP",
+    "reproducible research"
+  ],
+  "related_identifiers": [
+    { "relation": "references", "scheme": "doi", "identifier": "10.5194/gmd-15-4597-2022" },
+    { "relation": "references", "scheme": "doi", "identifier": "10.5194/gmd-17-1-2024" },
+    { "relation": "references", "scheme": "doi", "identifier": "10.5194/gmd-14-1037-2021" }
+  ],
+  "notes": "Code is released under the MIT License; data products, figures and text under CC BY 4.0. Third-party input datasets retain the licences of their original providers (see input/DATA_SOURCES.md). Replace this note and add the article DOI (relation isSupplementTo) once the accompanying paper is published."
+}

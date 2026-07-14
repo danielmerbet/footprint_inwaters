@@ -55,11 +55,13 @@ pleg<-ggplot(legdf,aes(x,y))+
   annotate("text",x=0,y=1.75,label="How the signal arrives",fontface="bold",size=3.6,hjust=0)+
   scale_x_continuous(limits=c(-.1,3.7))+scale_y_continuous(limits=c(-.6,2.1))+
   theme_void()
-fig<-( panel(paste0(rivers_dir,"/output/footprint/rivtemp/"), "a","River") /
-       panel(paste0(lakes_dir,"/output/footprint/surftemp/"),"b","Lake surface") /
-       panel(paste0(lakes_dir,"/output/footprint/bottemp/"), "c","Lake bottom")  /
+FP_OUT_ROOT <- Sys.getenv("FP_OUT_ROOT","output/footprint/")   # override for annual-index supp. variant
+fig<-( panel(paste0(rivers_dir,"/",FP_OUT_ROOT,"rivtemp/"), "a","River") /
+       panel(paste0(lakes_dir,"/",FP_OUT_ROOT,"surftemp/"),"b","Lake surface") /
+       panel(paste0(lakes_dir,"/",FP_OUT_ROOT,"bottemp/"), "c","Lake bottom")  /
        pleg ) + plot_layout(heights=c(1,1,1,0.24))
 
-dir.create("output/figures",showWarnings=FALSE,recursive=TRUE)
-ggsave("output/figures/F3_mechanism.png",fig,width=8.6,height=8.8,dpi=300,bg="white")
-cat("saved F3_mechanism.png\n")
+FIG_OUT <- Sys.getenv("FIG_OUT","output/figures/F3_mechanism.png")
+dir.create(dirname(FIG_OUT),showWarnings=FALSE,recursive=TRUE)
+ggsave(FIG_OUT,fig,width=8.6,height=8.8,dpi=300,bg="white")
+cat("saved",FIG_OUT,"\n")

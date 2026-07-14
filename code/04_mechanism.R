@@ -17,10 +17,13 @@ local({
   assign("base", d, envir = .GlobalEnv)
 })
 setwd(base)
+# Overridable index file / footprint root (defaults = season-specific main analysis).
+FP_INDEX_FILE <- Sys.getenv("FP_INDEX_FILE", "input/clim_index/seasonal_indices.csv")
+FP_OUT_ROOT   <- Sys.getenv("FP_OUT_ROOT",   "output/footprint/")
 years <- 1901:2021; keep <- years >= 1950 & years <= 2021; yrs <- years[keep]; n <- length(yrs)
 X_t <- cbind(1, scale(yrs, scale = FALSE)); Hcomp <- diag(n) - X_t %*% solve(crossprod(X_t)) %*% t(X_t)
 detmat <- function(M) t(Hcomp %*% t(M))
-si <- read.csv("input/clim_index/seasonal_indices.csv"); si <- si[match(yrs, si$year), ]
+si <- read.csv(FP_INDEX_FILE); si <- si[match(yrs, si$year), ]
 IDXd <- scale(Hcomp %*% cbind(si$enso_djf, si$nao_djfm, si$iod_son)); E <- IDXd[,1]; N <- IDXd[,2]; I <- IDXd[,3]
 
 systems <- list(
@@ -38,7 +41,7 @@ run_mech <- function(name, cfg) {
   grid <- rast(lapply(seq_len(n), function(k){r<-rast(t(v[,,k]));ext(r)<-c(-180,180,-90,90);crs(r)<-"EPSG:4326";r}))
   tab <- as.data.frame(grid, xy = TRUE, na.rm = TRUE); xy <- tab[, 1:2]
   cells <- cellFromXY(grid[[1]], as.matrix(xy)); Yd <- detmat(as.matrix(tab[, -(1:2)]))
-  d <- paste0("output/footprint/", name, "/"); gv <- function(f) rast(paste0(d, f))[cells][, 1]
+  d <- paste0(FP_OUT_ROOT, name, "/"); gv <- function(f) rast(paste0(d, f))[cells][, 1]
   q <- gv("qvalue_fdr.tiff"); lE <- gv("enso_lag.tiff"); lN <- gv("nao_lag.tiff"); lI <- gv("iod_lag.tiff")
   loadmet <- function(var) { nc <- nc_open(paste0("input/clim_data/20crv3-era5_obsclim_", var, "_global_yearly_1901_2021.nc"))
     m <- ncvar_get(nc, var); nc_close(nc); m <- m[, , keep]

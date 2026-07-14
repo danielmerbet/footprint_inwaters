@@ -22,6 +22,10 @@ local({
   assign("base", d, envir = .GlobalEnv)
 })
 setwd(base)
+# Index file and output root are overridable (defaults = season-specific main analysis).
+# Supplementary annual-mean variant sets FP_INDEX_FILE / FP_OUT_ROOT (see code/11_*).
+FP_INDEX_FILE <- Sys.getenv("FP_INDEX_FILE", "input/clim_index/seasonal_indices.csv")
+FP_OUT_ROOT   <- Sys.getenv("FP_OUT_ROOT",   "output/footprint/")
 indices    <- c("enso", "nao", "iod")
 maxlag     <- 3
 min_region <- 5
@@ -47,7 +51,7 @@ run_footprint <- function(name, cfg) {
   X_t <- cbind(1, scale(yrs, scale = FALSE))
   Hcomp <- diag(n) - X_t %*% solve(crossprod(X_t)) %*% t(X_t)
   Yd <- t(Hcomp %*% t(Y))
-  si <- read.csv("input/clim_index/seasonal_indices.csv"); si <- si[match(yrs, si$year), ]
+  si <- read.csv(FP_INDEX_FILE); si <- si[match(yrs, si$year), ]
   IDX <- sapply(indices, function(i) si[[index_col[i]]])
   IDXd <- scale(Hcomp %*% IDX)
 
@@ -87,7 +91,7 @@ run_footprint <- function(name, cfg) {
     for (j in seq_along(indices)) adj_single[i, j] <- fit_adjR2(y, cbind(1, IDXd[rows - L[j], j]))[1] }
   q_fdr <- p.adjust(p_eff, method = "BH")
 
-  outdir <- paste0("output/footprint/", name, "/"); dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+  outdir <- paste0(FP_OUT_ROOT, name, "/"); dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
   wm <- function(vals, nm) { r <- grid[[1]]; values(r) <- NA; r[cells] <- vals; writeRaster(r, paste0(outdir, nm, ".tiff"), overwrite = TRUE) }
   wm(F_adj, "footprint_adjR2"); wm(p_eff, "pvalue_eff"); wm(q_fdr, "qvalue_fdr")
   for (j in seq_along(indices)) { wm(adj_single[, j], paste0(indices[j], "_adjR2"))

@@ -2,3 +2,20 @@
 # Preserved oversized source NetCDFs (annual/compressed versions are committed instead)
 largefiles/
 manuscript/
+
+# Large third-party input data — obtain from ISIMIP / NOAA (see input/DATA_SOURCES.md);
+# archived with the derived products on Zenodo. Keep out of the GitHub code repo.
+input/clim_data/*.nc
+input/clim_data/*.tif
+input/laketemp/*.nc
+input/rivertemp/*.nc
+
+# R / LaTeX / editor build artefacts
+.Rhistory
+.RData
+.Rproj.user/
+sessionInfo.txt
+*.aux
+*.out
+*.toc
+*.synctex.gz

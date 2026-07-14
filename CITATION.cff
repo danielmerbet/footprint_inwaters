@@ -1,0 +1,57 @@
+# Citation File Format — https://citation-file-format.github.io
+# NOTE: replace the FILL-* placeholders (DOI, release date, ORCIDs, GitHub URL) before release.
+cff-version: 1.2.0
+message: "If you use this software or data, please cite it using the metadata below."
+title: "The footprint of climate oscillations in global inland waters: analysis code and derived data"
+abstract: >-
+  Reproducible analysis quantifying how the leading modes of interannual climate variability
+  (ENSO, IOD and NAO) explain year-to-year temperature variability in global rivers and lakes
+  (surface and bottom), 1950-2021. The oscillation footprint F is the fraction of detrended
+  interannual water-temperature variance jointly explained by the three modes; field-significant
+  cells are termed teleconnected. Includes code, derived GeoTIFF/JSON products and interactive tools.
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Mercado-Bettín
+    email: daniel.mercado@csic.es
+    affiliation: "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+    # orcid: "https://orcid.org/FILL-ORCID"
+  - given-names: Rafael
+    family-names: Marcé
+    affiliation: "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+    # orcid: "https://orcid.org/FILL-ORCID"
+version: "1.0.0"
+date-released: "FILL-YYYY-MM-DD"
+license:
+  - MIT
+  - CC-BY-4.0
+doi: "FILL-ZENODO-DOI"
+repository-code: "https://github.com/FILL-USER/footprint_inwaters"
+url: "https://github.com/FILL-USER/footprint_inwaters"
+keywords:
+  - climate oscillations
+  - teleconnections
+  - ENSO
+  - Indian Ocean Dipole
+  - North Atlantic Oscillation
+  - inland waters
+  - lakes
+  - rivers
+  - water temperature
+  - interannual variability
+  - variance partitioning
+  - ISIMIP
+  - reproducible research
+preferred-citation:
+  type: article
+  title: "The footprint of climate oscillations in global inland waters"
+  authors:
+    - given-names: Daniel
+      family-names: Mercado-Bettín
+      affiliation: "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+    - given-names: Rafael
+      family-names: Marcé
+      affiliation: "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+  journal: "Geophysical Research Letters"
+  year: 2026
+  notes: "In preparation. Update volume/pages/DOI on publication."

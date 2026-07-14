@@ -1,0 +1,70 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "identifier": "footprint_inwaters",
+  "name": "The footprint of climate oscillations in global inland waters",
+  "description": "Reproducible R analysis quantifying and explaining how ENSO, IOD and NAO explain interannual temperature variability in global rivers and lakes (surface and bottom), 1950-2021, via the oscillation footprint F (adjusted R-squared of detrended water temperature on the three season-specific indices), with two-block variation partitioning of direct vs mediated pathways.",
+  "codeRepository": "https://github.com/FILL-USER/footprint_inwaters",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "R",
+    "version": ">= 4.1"
+  },
+  "runtimePlatform": "R",
+  "operatingSystem": ["Linux", "macOS", "Windows"],
+  "version": "1.0.0",
+  "dateModified": "FILL-YYYY-MM-DD",
+  "developmentStatus": "active",
+  "license": "https://spdx.org/licenses/MIT.html",
+  "keywords": [
+    "climate oscillations",
+    "teleconnections",
+    "ENSO",
+    "Indian Ocean Dipole",
+    "North Atlantic Oscillation",
+    "inland waters",
+    "lakes",
+    "rivers",
+    "water temperature",
+    "interannual variability",
+    "variance partitioning",
+    "ISIMIP",
+    "reproducible research"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Daniel",
+      "familyName": "Mercado-Bettín",
+      "email": "daniel.mercado@csic.es",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+      }
+    },
+    {
+      "@type": "Person",
+      "givenName": "Rafael",
+      "familyName": "Marcé",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Centre d'Estudis Avançats de Blanes (CEAB-CSIC), Blanes, Spain"
+      }
+    }
+  ],
+  "softwareRequirements": [
+    "R (>= 4.1)",
+    "terra (>= 1.8)",
+    "ncdf4 (>= 1.23)",
+    "sf (>= 1.0)",
+    "ggplot2 (>= 3.5)",
+    "patchwork",
+    "jsonlite",
+    "tidyterra",
+    "rnaturalearth",
+    "viridis",
+    "ggrepel",
+    "ggnewscale",
+    "GDAL / GEOS / PROJ / NetCDF system libraries"
+  ]
+}

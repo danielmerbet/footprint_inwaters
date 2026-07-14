@@ -53,15 +53,17 @@ Dpanel <- function(d,tag,title){
     base_gg()[-1]+ labs(title=bquote(bold(.(tag))~"  "*.(title)),
       subtitle=sprintf("ENSO %d%% · IOD %d%% · NAO %d%%",tb[1],tb[2],tb[3]))
 }
-dl<-paste0(lakes_dir,"/output/footprint/surftemp/")
-db<-paste0(lakes_dir,"/output/footprint/bottemp/")
-dr<-paste0(rivers_dir,"/output/footprint/rivtemp/")
+FP_OUT_ROOT <- Sys.getenv("FP_OUT_ROOT","output/footprint/")   # override for annual-index supp. variant
+dl<-paste0(lakes_dir,"/",FP_OUT_ROOT,"surftemp/")
+db<-paste0(lakes_dir,"/",FP_OUT_ROOT,"bottemp/")
+dr<-paste0(rivers_dir,"/",FP_OUT_ROOT,"rivtemp/")
 
 fig <- (Fpanel(dr,"a","River")        | Dpanel(dr,"b","River")) /
        (Fpanel(dl,"c","Lake surface") | Dpanel(dl,"d","Lake surface")) /
        (Fpanel(db,"e","Lake bottom")  | Dpanel(db,"f","Lake bottom"))  +
        plot_layout(guides="collect") & theme(legend.position="bottom")
 
-dir.create("output/figures",showWarnings=FALSE,recursive=TRUE)
-ggsave("output/figures/F2_footprint.png",fig,width=11,height=9.6,dpi=300,bg="white")
-cat("saved F2_footprint.png\n")
+FIG_OUT <- Sys.getenv("FIG_OUT","output/figures/F2_footprint.png")
+dir.create(dirname(FIG_OUT),showWarnings=FALSE,recursive=TRUE)
+ggsave(FIG_OUT,fig,width=11,height=9.6,dpi=300,bg="white")
+cat("saved",FIG_OUT,"\n")
