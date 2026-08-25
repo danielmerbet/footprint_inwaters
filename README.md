@@ -14,7 +14,7 @@ water-temperature variance jointly explained by the three modes,
 (Benjamini–Hochberg FDR < 0.05) are termed **teleconnected**.
 
 > **Manuscript:** *The footprint of climate oscillations in global inland waters* —
-> D. Mercado-Bettín & R. Marcé (CEAB-CSIC), in preparation for *Geophysical Research Letters* (AGU).
+> D. Mercado-Bettín & R. Marcé (CEAB-CSIC), in preparation for submission.
 
 ---
 
