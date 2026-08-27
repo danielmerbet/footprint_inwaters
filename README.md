@@ -219,7 +219,7 @@ https://doi.org/FILL-ZENODO-DOI
 
 ---
 
-## FAIR + Reproducibility statement
+## FAIR
 This repository is designed to meet the **FAIR** principles and full computational reproducibility:
 
 - **Findable** — rich metadata (`CITATION.cff`, `.zenodo.json`, `codemeta.json`), descriptive
@@ -230,8 +230,6 @@ This repository is designed to meet the **FAIR** principles and full computation
   documented variables, units and CRS (EPSG:4326).
 - **Reusable** — clear licences (MIT + CC BY 4.0), complete provenance, and pinned software
   versions.
-- **Reproducible (+R)** — the full analysis regenerates from raw inputs with the numbered scripts
-  above; all code is path-agnostic (auto-detects the repository root) and runs on open-source R.
 
 **Contact:** Daniel Mercado-Bettín — `daniel.mercado@csic.es` · Centre d'Estudis Avançats de Blanes
 (CEAB-CSIC), Blanes, Spain.
